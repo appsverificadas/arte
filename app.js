@@ -1,83 +1,72 @@
 // 1. ESCENA Y CÁMARA
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x030303); // Negro abismal de galería
+scene.background = new THREE.Color(0x0a0a0a);
 
-const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-camera.position.z = 7;
+const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+camera.position.z = 8;
 
 const canvas = document.getElementById('lienzo3d');
 const renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // Nitidez extrema para pantallas 4K
 
-// 2. EL ADN DE LA OBRA (Lo que la hace 1/1)
-// Esta es la semilla que en el futuro cambiará con cada venta
-const semillaComprador = "0x8f4c2b9a1e"; 
+// 2. CONTROLES DE ZOOM Y ROTACIÓN
+const controls = new THREE.OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true; // Movimiento suave y premium
+controls.dampingFactor = 0.05;
+controls.minDistance = 3; // Límite de zoom hacia adentro
+controls.maxDistance = 15; // Límite de zoom hacia afuera
 
-// 3. LA MATERIA (Nube de partículas fracturadas)
-const geometry = new THREE.BufferGeometry();
-const cantParticulas = 20000;
-const posiciones = new Float32Array(cantParticulas * 3);
-const colores = new Float32Array(cantParticulas * 3);
+// 3. LUCES DE ESTUDIO (Imprescindibles para el detalle)
+const luzPrincipal = new THREE.DirectionalLight(0xffffff, 2);
+luzPrincipal.position.set(5, 5, 5);
+scene.add(luzPrincipal);
 
-for (let i = 0; i < cantParticulas * 3; i += 3) {
-    // Generamos una esfera densa pero caótica
-    const r = 3 + (Math.random() * 1.2); 
-    const theta = 2 * Math.PI * Math.random();
-    const phi = Math.acos(2 * Math.random() - 1);
+const luzRelleno = new THREE.DirectionalLight(0xd4af37, 1); // Tono dorado
+luzRelleno.position.set(-5, -5, -5);
+scene.add(luzRelleno);
+
+scene.add(new THREE.AmbientLight(0x222222));
+
+// 4. ESCULTURA DE ALTA RESOLUCIÓN
+// Icosaedro con detalle 40 = miles de polígonos sólidos
+const geometry = new THREE.IcosahedronGeometry(2.5, 40); 
+const posiciones = geometry.attributes.position;
+
+// Deformación física para que parezca una piedra tallada o fracturada
+for (let i = 0; i < posiciones.count; i++) {
+    let x = posiciones.getX(i);
+    let y = posiciones.getY(i);
+    let z = posiciones.getZ(i);
     
-    posiciones[i] = r * Math.sin(phi) * Math.cos(theta);     // X
-    posiciones[i+1] = r * Math.sin(phi) * Math.sin(theta);   // Y
-    posiciones[i+2] = r * Math.cos(phi);                     // Z
-
-    // Inyectamos el oro (Kintsugi): 93% negro/gris, 7% oro puro
-    if (Math.random() > 0.93) {
-        colores[i] = 1.0;   // Rojo al máximo
-        colores[i+1] = 0.7; // Verde
-        colores[i+2] = 0.1; // Azul
-    } else {
-        // Material oscuro y frágil
-        const tonoGris = 0.1 + (Math.random() * 0.2);
-        colores[i] = tonoGris;
-        colores[i+1] = tonoGris;
-        colores[i+2] = tonoGris;
-    }
+    // Distorsión caótica pero continua
+    let ruido = 1 + (Math.sin(x * 4) * Math.cos(y * 4) * Math.sin(z * 4)) * 0.15;
+    posiciones.setXYZ(i, x * ruido, y * ruido, z * ruido);
 }
+geometry.computeVertexNormals(); // Recalcula cómo rebota la luz en los nuevos ángulos
 
-geometry.setAttribute('position', new THREE.BufferAttribute(posiciones, 3));
-geometry.setAttribute('color', new THREE.BufferAttribute(colores, 3));
-
-// 4. EL MATERIAL PREMIUM
-const material = new THREE.PointsMaterial({
-    size: 0.03, // Puntos microscópicos
-    vertexColors: true,
-    transparent: true,
-    opacity: 0.9
+// 5. MATERIAL PREMIUM (Físicamente realista)
+const material = new THREE.MeshPhysicalMaterial({
+    color: 0x111111,       // Casi negro
+    metalness: 0.8,        // Apariencia metálica
+    roughness: 0.2,        // Ligeramente pulido
+    clearcoat: 1.0,        // Capa de barniz/cristal por encima
+    clearcoatRoughness: 0.1
 });
 
-const escultura = new THREE.Points(geometry, material);
+const escultura = new THREE.Mesh(geometry, material);
 scene.add(escultura);
 
-// 5. INTERACTIVIDAD (La tensión con el usuario)
-let mouseX = 0;
-let mouseY = 0;
-document.addEventListener('mousemove', (event) => {
-    // Convertimos la posición del mouse en coordenadas 3D
-    mouseX = (event.clientX / window.innerWidth) * 2 - 1;
-    mouseY = -(event.clientY / window.innerHeight) * 2 + 1;
-});
-
-// 6. EL MOTOR DE VIDA
+// 6. MOTOR DE ANIMACIÓN
 function animar() {
     requestAnimationFrame(animar);
     
-    // Rotación natural de la obra
-    escultura.rotation.y += 0.0015;
-    escultura.rotation.x += 0.0005;
+    // Rotación base (muy lenta)
+    escultura.rotation.y += 0.001;
     
-    // La obra reacciona (se tensa) cuando el coleccionista mueve el mouse
-    escultura.rotation.y += mouseX * 0.01;
-    escultura.rotation.x -= mouseY * 0.01;
-
+    // Actualiza los controles del usuario
+    controls.update(); 
+    
     renderer.render(scene, camera);
 }
 

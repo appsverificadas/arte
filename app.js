@@ -1,76 +1,117 @@
-// 1. ESCENA Y CÁMARA
+// 1. ESCENA Y CÁMARA (El calabozo digital)
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x0a0a0a);
+scene.fog = new THREE.FogExp2(0x050101, 0.08); // Niebla oscura para dar profundidad
+scene.background = new THREE.Color(0x050101);
 
 const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
-camera.position.z = 8;
+camera.position.z = 12;
 
 const canvas = document.getElementById('lienzo3d');
 const renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // Nitidez extrema para pantallas 4K
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
-// 2. CONTROLES DE ZOOM Y ROTACIÓN
 const controls = new THREE.OrbitControls(camera, renderer.domElement);
-controls.enableDamping = true; // Movimiento suave y premium
+controls.enableDamping = true;
 controls.dampingFactor = 0.05;
-controls.minDistance = 3; // Límite de zoom hacia adentro
-controls.maxDistance = 15; // Límite de zoom hacia afuera
+controls.minDistance = 4;
+controls.maxDistance = 20;
 
-// 3. LUCES DE ESTUDIO (Imprescindibles para el detalle)
-const luzPrincipal = new THREE.DirectionalLight(0xffffff, 2);
-luzPrincipal.position.set(5, 5, 5);
-scene.add(luzPrincipal);
+// 2. ILUMINACIÓN DE TERROR (Rojo sangre y Azul abisal)
+const luzRoja = new THREE.PointLight(0x8a0303, 5, 20);
+luzRoja.position.set(5, 5, 2);
+scene.add(luzRoja);
 
-const luzRelleno = new THREE.DirectionalLight(0xd4af37, 1); // Tono dorado
-luzRelleno.position.set(-5, -5, -5);
-scene.add(luzRelleno);
+const luzAzul = new THREE.PointLight(0x0a2f5c, 3, 20);
+luzAzul.position.set(-5, -5, 2);
+scene.add(luzAzul);
 
-scene.add(new THREE.AmbientLight(0x222222));
+scene.add(new THREE.AmbientLight(0x111111));
 
-// 4. ESCULTURA DE ALTA RESOLUCIÓN
-// Icosaedro con detalle 40 = miles de polígonos sólidos
-const geometry = new THREE.IcosahedronGeometry(2.5, 40); 
-const posiciones = geometry.attributes.position;
+// 3. EL ALIENÍGENA: NÚCLEO ORGÁNICO
+// Un TorusKnot (nudo) con altísimo detalle para simular tripas o un cerebro alienígena
+const geometryNucleo = new THREE.TorusKnotGeometry(2, 0.8, 300, 40, 3, 5);
+const posicionesNucleo = geometryNucleo.attributes.position;
 
-// Deformación física para que parezca una piedra tallada o fracturada
-for (let i = 0; i < posiciones.count; i++) {
-    let x = posiciones.getX(i);
-    let y = posiciones.getY(i);
-    let z = posiciones.getZ(i);
+// Deformamos el núcleo para que sea asimétrico y grotesco
+for (let i = 0; i < posicionesNucleo.count; i++) {
+    let x = posicionesNucleo.getX(i);
+    let y = posicionesNucleo.getY(i);
+    let z = posicionesNucleo.getZ(i);
     
-    // Distorsión caótica pero continua
-    let ruido = 1 + (Math.sin(x * 4) * Math.cos(y * 4) * Math.sin(z * 4)) * 0.15;
-    posiciones.setXYZ(i, x * ruido, y * ruido, z * ruido);
+    // Distorsión biológica
+    let ruido = 1 + (Math.sin(x * 3) * Math.cos(y * 2) * Math.sin(z * 4)) * 0.1;
+    posicionesNucleo.setXYZ(i, x * ruido, y * ruido, z * ruido);
 }
-geometry.computeVertexNormals(); // Recalcula cómo rebota la luz en los nuevos ángulos
+geometryNucleo.computeVertexNormals();
 
-// 5. MATERIAL PREMIUM (Físicamente realista)
-const material = new THREE.MeshPhysicalMaterial({
-    color: 0x111111,       // Casi negro
-    metalness: 0.8,        // Apariencia metálica
-    roughness: 0.2,        // Ligeramente pulido
-    clearcoat: 1.0,        // Capa de barniz/cristal por encima
-    clearcoatRoughness: 0.1
+// Material húmedo y orgánico (como la piel de un xenomorfo)
+const materialNucleo = new THREE.MeshPhysicalMaterial({
+    color: 0x1a0000,       // Rojo casi negro
+    metalness: 0.3,
+    roughness: 0.1,        // Muy liso para simular humedad
+    clearcoat: 1.0,        // Brillo baboso
+    clearcoatRoughness: 0.2
 });
 
-const escultura = new THREE.Mesh(geometry, material);
-scene.add(escultura);
+const nucleo = new THREE.Mesh(geometryNucleo, materialNucleo);
+scene.add(nucleo);
 
-// 6. MOTOR DE ANIMACIÓN
+// 4. EL ENJAMBRE: ESQUIRLAS Y ESPINAS PROTECTORAS
+// Creamos múltiples objetos satélite para darle complejidad a la obra
+const esquirlas = new THREE.Group();
+const geoEsquirla = new THREE.ConeGeometry(0.1, 1.5, 4); // Espinas afiladas
+const matEsquirla = new THREE.MeshPhysicalMaterial({
+    color: 0x000000,
+    metalness: 0.9,
+    roughness: 0.3,
+    transmission: 0.5 // Ligeramente translúcidas
+});
+
+for (let i = 0; i < 80; i++) {
+    const esquirla = new THREE.Mesh(geoEsquirla, matEsquirla);
+    
+    // Posición caótica alrededor del núcleo
+    const radio = 4 + Math.random() * 3;
+    const angulo1 = Math.random() * Math.PI * 2;
+    const angulo2 = Math.random() * Math.PI * 2;
+    
+    esquirla.position.x = radio * Math.cos(angulo1) * Math.sin(angulo2);
+    esquirla.position.y = radio * Math.sin(angulo1) * Math.sin(angulo2);
+    esquirla.position.z = radio * Math.cos(angulo2);
+    
+    // Apuntan en direcciones aleatorias
+    esquirla.rotation.x = Math.random() * Math.PI;
+    esquirla.rotation.y = Math.random() * Math.PI;
+    
+    esquirlas.add(esquirla);
+}
+scene.add(esquirlas);
+
+// 5. MOTOR DE VIDA (Respiración y movimiento)
+let tiempo = 0;
+
 function animar() {
     requestAnimationFrame(animar);
+    tiempo += 0.01;
     
-    // Rotación base (muy lenta)
-    escultura.rotation.y += 0.001;
+    // El núcleo respira (se expande y contrae sutilmente)
+    let latido = 1 + Math.sin(tiempo * 2) * 0.05;
+    nucleo.scale.set(latido, latido, latido);
     
-    // Actualiza los controles del usuario
+    // El núcleo rota como si estuviera vivo
+    nucleo.rotation.x += 0.002;
+    nucleo.rotation.y += 0.003;
+    
+    // El enjambre de esquirlas orbita lentamente de forma amenazante
+    esquirlas.rotation.y -= 0.001;
+    esquirlas.rotation.z += 0.0005;
+    
     controls.update(); 
-    
     renderer.render(scene, camera);
 }
 
-// 7. RESPONSIVE
+// 6. RESPONSIVE
 window.addEventListener('resize', () => {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();

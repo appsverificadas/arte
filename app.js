@@ -1,10 +1,10 @@
-// 1. ESCENA Y CÁMARA (El calabozo digital)
+// 1. ESCENA, CÁMARA Y ENTORNO (Calabozo Digital)
 const scene = new THREE.Scene();
-scene.fog = new THREE.FogExp2(0x050101, 0.08); // Niebla oscura para dar profundidad
-scene.background = new THREE.Color(0x050101);
+scene.fog = new THREE.FogExp2(0x030205, 0.07); // Niebla abisal
+scene.background = new THREE.Color(0x030205);
 
 const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
-camera.position.z = 12;
+camera.position.set(0, 1, 9);
 
 const canvas = document.getElementById('lienzo3d');
 const renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
@@ -14,104 +14,158 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 const controls = new THREE.OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.dampingFactor = 0.05;
-controls.minDistance = 4;
-controls.maxDistance = 20;
+controls.minDistance = 3;
+controls.maxDistance = 18;
 
-// 2. ILUMINACIÓN DE TERROR (Rojo sangre y Azul abisal)
-const luzRoja = new THREE.PointLight(0x8a0303, 5, 20);
-luzRoja.position.set(5, 5, 2);
+// 2. ILUMINACIÓN DRAMÁTICA (Dual Rojo/Cian)
+const luzRoja = new THREE.PointLight(0xff1a3c, 5, 25);
+luzRoja.position.set(6, 4, 4);
 scene.add(luzRoja);
 
-const luzAzul = new THREE.PointLight(0x0a2f5c, 3, 20);
-luzAzul.position.set(-5, -5, 2);
-scene.add(luzAzul);
+const luzCian = new THREE.PointLight(0x00f0ff, 4, 25);
+luzCian.position.set(-6, -4, -2);
+scene.add(luzCian);
 
-scene.add(new THREE.AmbientLight(0x111111));
+scene.add(new THREE.AmbientLight(0x0a0a14, 1.5));
 
-// 3. EL ALIENÍGENA: NÚCLEO ORGÁNICO
-// Un TorusKnot (nudo) con altísimo detalle para simular tripas o un cerebro alienígena
-const geometryNucleo = new THREE.TorusKnotGeometry(2, 0.8, 300, 40, 3, 5);
-const posicionesNucleo = geometryNucleo.attributes.position;
+// 3. GRUPO PRINCIPAL Y MATERIALES
+const monstruo = new THREE.Group();
+scene.add(monstruo);
 
-// Deformamos el núcleo para que sea asimétrico y grotesco
-for (let i = 0; i < posicionesNucleo.count; i++) {
-    let x = posicionesNucleo.getX(i);
-    let y = posicionesNucleo.getY(i);
-    let z = posicionesNucleo.getZ(i);
-    
-    // Distorsión biológica
-    let ruido = 1 + (Math.sin(x * 3) * Math.cos(y * 2) * Math.sin(z * 4)) * 0.1;
-    posicionesNucleo.setXYZ(i, x * ruido, y * ruido, z * ruido);
-}
-geometryNucleo.computeVertexNormals();
-
-// Material húmedo y orgánico (como la piel de un xenomorfo)
-const materialNucleo = new THREE.MeshPhysicalMaterial({
-    color: 0x1a0000,       // Rojo casi negro
-    metalness: 0.3,
-    roughness: 0.1,        // Muy liso para simular humedad
-    clearcoat: 1.0,        // Brillo baboso
-    clearcoatRoughness: 0.2
+// Material de piel de obsidiana/cristal biológico
+const matPiel = new THREE.MeshPhysicalMaterial({
+    color: 0x0c0a10,
+    metalness: 0.8,
+    roughness: 0.15,
+    clearcoat: 1.0,
+    clearcoatRoughness: 0.1,
+    reflectivity: 0.9
 });
 
-const nucleo = new THREE.Mesh(geometryNucleo, materialNucleo);
-scene.add(nucleo);
-
-// 4. EL ENJAMBRE: ESQUIRLAS Y ESPINAS PROTECTORAS
-// Creamos múltiples objetos satélite para darle complejidad a la obra
-const esquirlas = new THREE.Group();
-const geoEsquirla = new THREE.ConeGeometry(0.1, 1.5, 4); // Espinas afiladas
-const matEsquirla = new THREE.MeshPhysicalMaterial({
-    color: 0x000000,
-    metalness: 0.9,
-    roughness: 0.3,
-    transmission: 0.5 // Ligeramente translúcidas
+// Material neón brillante para ojos y energía
+const matEnergia = new THREE.MeshBasicMaterial({
+    color: 0x00ffff
 });
 
-for (let i = 0; i < 80; i++) {
-    const esquirla = new THREE.Mesh(geoEsquirla, matEsquirla);
-    
-    // Posición caótica alrededor del núcleo
-    const radio = 4 + Math.random() * 3;
-    const angulo1 = Math.random() * Math.PI * 2;
-    const angulo2 = Math.random() * Math.PI * 2;
-    
-    esquirla.position.x = radio * Math.cos(angulo1) * Math.sin(angulo2);
-    esquirla.position.y = radio * Math.sin(angulo1) * Math.sin(angulo2);
-    esquirla.position.z = radio * Math.cos(angulo2);
-    
-    // Apuntan en direcciones aleatorias
-    esquirla.rotation.x = Math.random() * Math.PI;
-    esquirla.rotation.y = Math.random() * Math.PI;
-    
-    esquirlas.add(esquirla);
+// 4. ANATOMÍA: CUERPO CENTRAL (Esfera deformada procedimentalmente)
+const geoCuerpo = new THREE.IcosahedronGeometry(2, 35);
+const posCuerpo = geoCuerpo.attributes.position;
+for (let i = 0; i < posCuerpo.count; i++) {
+    let x = posCuerpo.getX(i);
+    let y = posCuerpo.getY(i);
+    let z = posCuerpo.getZ(i);
+    let d = 1 + Math.sin(x * 3) * Math.cos(y * 2) * Math.sin(z * 3) * 0.22;
+    posCuerpo.setXYZ(i, x * d, y * d, z * d);
 }
-scene.add(esquirlas);
+geoCuerpo.computeVertexNormals();
+const cuerpo = new THREE.Mesh(geoCuerpo, matPiel);
+monstruo.add(cuerpo);
 
-// 5. MOTOR DE VIDA (Respiración y movimiento)
+// 5. ANATOMÍA: CABEZA ALIENÍGENA
+const geoCabeza = new THREE.IcosahedronGeometry(1.2, 25);
+const posCabeza = geoCabeza.attributes.position;
+for (let i = 0; i < posCabeza.count; i++) {
+    let x = posCabeza.getX(i);
+    let y = posCabeza.getY(i);
+    let z = posCabeza.getZ(i);
+    let d = 1 + Math.sin(y * 4 + x * 2) * 0.18;
+    posCabeza.setXYZ(i, x * d, y * d * 1.3, z * d * 1.1); // Forma estilizada y alargada
+}
+geoCabeza.computeVertexNormals();
+const cabeza = new THREE.Mesh(geoCabeza, matPiel);
+cabeza.position.set(0, 2.2, 0.3);
+monstruo.add(cabeza);
+
+// 6. DETALLES: OJOS BRILLANTES Y CORONA DE CUERNOS
+const geoOjo = new THREE.SphereGeometry(0.18, 16, 16);
+const ojoIzq = new THREE.Mesh(geoOjo, matEnergia);
+ojoIzq.position.set(-0.4, 2.4, 1.1);
+monstruo.add(ojoIzq);
+
+const ojoDer = new THREE.Mesh(geoOjo, matEnergia);
+ojoDer.position.set(0.4, 2.4, 1.1);
+monstruo.add(ojoDer);
+
+// Luz propia emitiendo desde los ojos
+const luzOjos = new THREE.PointLight(0x00ffff, 2, 4);
+luzOjos.position.set(0, 2.4, 1.2);
+monstruo.add(luzOjos);
+
+// Corona de espinas
+const geoCuerno = new THREE.ConeGeometry(0.15, 1.8, 5);
+for (let i = 0; i < 7; i++) {
+    const cuerno = new THREE.Mesh(geoCuerno, matPiel);
+    const angulo = (i - 3) * 0.35;
+    cuerno.position.set(Math.sin(angulo) * 1.2, 2.8 + Math.cos(angulo) * 0.2, Math.cos(angulo) * -0.5);
+    cuerno.rotation.z = -angulo * 1.2;
+    cuerno.rotation.x = -0.4;
+    monstruo.add(cuerno);
+}
+
+// 7. ZARCILLOS / TENTÁCULOS INFERIORES
+for (let i = 0; i < 8; i++) {
+    const puntos = [];
+    const ang = (i / 8) * Math.PI * 2;
+    for (let j = 0; j < 5; j++) {
+        puntos.push(new THREE.Vector3(
+            Math.cos(ang) * (1 + j * 0.4) + (Math.random() - 0.5) * 0.2,
+            -1 - j * 0.7,
+            Math.sin(ang) * (1 + j * 0.4) + (Math.random() - 0.5) * 0.2
+        ));
+    }
+    const curva = new THREE.CatmullRomCurve3(puntos);
+    const geoTuberia = new THREE.TubeGeometry(curva, 20, 0.08, 8, false);
+    const zarcillo = new THREE.Mesh(geoTuberia, matPiel);
+    monstruo.add(zarcillo);
+}
+
+// 8. ENJAMBRE DE CRISTALES EN ÓRBITA
+const enjambre = new THREE.Group();
+const geoCristal = new THREE.OctahedronGeometry(0.12, 0);
+for (let i = 0; i < 60; i++) {
+    const cristal = new THREE.Mesh(
+        geoCristal, 
+        Math.random() > 0.35 ? matPiel : matEnergia
+    );
+    const r = 3 + Math.random() * 2.5;
+    const t1 = Math.random() * Math.PI * 2;
+    const t2 = Math.random() * Math.PI * 2;
+    cristal.position.set(
+        r * Math.sin(t1) * Math.cos(t2),
+        r * Math.sin(t1) * Math.sin(t2),
+        r * Math.cos(t1)
+    );
+    enjambre.add(cristal);
+}
+scene.add(enjambre);
+
+// 9. BUCLE DE ANIMACIÓN Y FÍSICA
 let tiempo = 0;
 
 function animar() {
     requestAnimationFrame(animar);
-    tiempo += 0.01;
-    
-    // El núcleo respira (se expande y contrae sutilmente)
-    let latido = 1 + Math.sin(tiempo * 2) * 0.05;
-    nucleo.scale.set(latido, latido, latido);
-    
-    // El núcleo rota como si estuviera vivo
-    nucleo.rotation.x += 0.002;
-    nucleo.rotation.y += 0.003;
-    
-    // El enjambre de esquirlas orbita lentamente de forma amenazante
-    esquirlas.rotation.y -= 0.001;
-    esquirlas.rotation.z += 0.0005;
-    
-    controls.update(); 
+    tiempo += 0.015;
+
+    // Latido y respiración biológica
+    const latido = 1 + Math.sin(tiempo * 2) * 0.03;
+    cuerpo.scale.set(latido, latido, latido);
+
+    // Flotación sutil del cuerpo
+    monstruo.rotation.y = Math.sin(tiempo * 0.4) * 0.15;
+    monstruo.position.y = Math.sin(tiempo * 1.2) * 0.15;
+
+    // Rotación del campo de energía orbital
+    enjambre.rotation.y -= 0.004;
+    enjambre.rotation.x += 0.002;
+
+    // Pulsación de la luz de los ojos
+    luzOjos.intensity = 2 + Math.sin(tiempo * 4) * 0.8;
+
+    controls.update();
     renderer.render(scene, camera);
 }
 
-// 6. RESPONSIVE
+// 10. REAJUSTE DE PANTALLA
 window.addEventListener('resize', () => {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
